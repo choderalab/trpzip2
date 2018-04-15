@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import time
 import progressbar
 from simtk import openmm, unit
 from simtk.openmm import app
@@ -20,7 +21,7 @@ temperature = 425 * unit.kelvin
 collision_rate = 1.0 / unit.picoseconds
 timestep = 2.0 * unit.femtoseconds
 nsteps = 500 # 1 ps
-niterations = 1000 # 1 ns
+niterations = 5000 # 5 ns
 
 solvated_pdb_filename = 'solvated.pdb'
 minimized_pdb_filename = 'minimized.pdb'
@@ -84,8 +85,12 @@ with open(minimized_pdb_filename, 'w') as outfile:
 
 # Equilibrate
 print('Equilibrating...')
+initial_time = time.time()
 for iteration in progressbar.progressbar(range(niterations)):
     integrator.step(nsteps)
+elapsed_time = (time.time() - initial_time) * unit.seconds
+simulation_time = niterations * nsteps * timestep
+print('    Equilibration took %.3f s for %.3f ns (%8.3f ns/day)' % (elapsed_time / unit.seconds, simulation_time / unit.nanoseconds, simulation_time / elapsed_time * unit.day / unit.nanoseconds))
 with open(equilibrated_pdb_filename, 'w') as outfile:
     app.PDBFile.writeFile(modeller.topology, context.getState(getPositions=True,enforcePeriodicBox=True).getPositions(), file=outfile, keepIds=True)
 print('  final   : %8.3f kcal/mol' % (context.getState(getEnergy=True).getPotentialEnergy()/unit.kilocalories_per_mole))
