@@ -60,12 +60,6 @@ print('Adding barostat...')
 barostat = openmm.MonteCarloBarostat(pressure, temperature)
 system.addForce(barostat)
 
-# Serialize system
-print('Serializing System to %s' % system_xml_filename)
-with open(system_xml_filename, 'w') as outfile:
-    xml = openmm.XmlSerializer.serialize(system)
-    outfile.write(xml)
-
 # Serialize integrator
 print('Serializing integrator to %s' % integrator_xml_filename)
 integrator = openmm.LangevinIntegrator(temperature, collision_rate, timestep)
@@ -101,3 +95,11 @@ state = context.getState(getPositions=True, getVelocities=True, getEnergy=True, 
 with open(state_xml_filename, 'w') as outfile:
     xml = openmm.XmlSerializer.serialize(state)
     outfile.write(xml)
+
+# Serialize system
+print('Serializing System to %s' % system_xml_filename)
+system.setDefaultPeriodicBoxVectors(*state.getPeriodicBoxVectors())
+with open(system_xml_filename, 'w') as outfile:
+    xml = openmm.XmlSerializer.serialize(system)
+    outfile.write(xml)
+
