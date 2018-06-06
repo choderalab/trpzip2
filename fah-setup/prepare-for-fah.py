@@ -14,7 +14,7 @@ solvent_padding = 15.0 * unit.angstroms
 ionic_strength = 200 * unit.millimolar
 hydrogen_mass = 2.0 * unit.amu
 
-ffxml_filenames = ['amber14/protein.ff14SB.xml', 'amber14/tip3p.xml']
+ffxml_filenames = ['amber99sbildn.xml', 'tip3p.xml']
 
 pressure = 1.0 * unit.atmospheres
 temperature = 425 * unit.kelvin
@@ -44,7 +44,7 @@ forcefield = app.ForceField(*ffxml_filenames)
 print('Adding solvent...')
 modeller = app.Modeller(pdb.topology, pdb.positions)
 modeller.addSolvent(forcefield, model=water_model, padding=solvent_padding, ionicStrength=ionic_strength)
-print('System has %d atoms' % modeller.topology.getNumAtoms())
+#print('System has %d atoms' % modeller.topology.getNumAtoms())
 
 # Write initial model
 print('Writing initial solvated system to %s' % solvated_pdb_filename)
@@ -102,4 +102,3 @@ system.setDefaultPeriodicBoxVectors(*state.getPeriodicBoxVectors())
 with open(system_xml_filename, 'w') as outfile:
     xml = openmm.XmlSerializer.serialize(system)
     outfile.write(xml)
-
