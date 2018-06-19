@@ -1,9 +1,13 @@
-#!/bin/env python
-
 import time
 import progressbar
 from simtk import openmm, unit
 from simtk.openmm import app
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('simulation_temperature', type=int)
+args = parser.parse_args()
+simulation_temperature = args.simulation_temperature
 
 #
 # Global simulation parameters
@@ -11,49 +15,37 @@ from simtk.openmm import app
 
 water_model = 'tip3p'
 solvent_padding = 15.0 * unit.angstroms
-ionic_strength = 200 * unit.millimolar
-hydrogen_mass = 2.0 * unit.amu
+ionic_strength = 39 * unit.millimolar
 
-ffxml_filenames = ['amber99sbildn.xml', 'tip3p.xml']
+ffxml_filenames = ['amber96.xml', 'tip3p.xml']
 
 pressure = 1.0 * unit.atmospheres
-temperature = 425 * unit.kelvin
+temperature = simulation_temperature * unit.kelvin
 collision_rate = 1.0 / unit.picoseconds
 timestep = 2.0 * unit.femtoseconds
 nsteps = 500 # 1 ps
 niterations = 5000 # 5 ns
 
 solvated_pdb_filename = 'solvated.pdb'
-minimized_pdb_filename = 'minimized.pdb'
-equilibrated_pdb_filename = 'equilibrated.pdb'
+minimized_pdb_filename = '%s/minimized.pdb' % simulation_temperature
+equilibrated_pdb_filename = '%s/equilibrated.pdb' % simulation_temperature
 
-system_xml_filename = 'system.xml'
-integrator_xml_filename = 'integrator.xml'
-state_xml_filename = 'state.xml'
+system_xml_filename = '%s/system.xml' % simulation_temperature
+integrator_xml_filename = '%s/integrator.xml' % simulation_temperature
+state_xml_filename = '%s/state.xml' % simulation_temperature
 
-# Read in the NMR model
-pdb_filename = '1le1.pdb'
-print('Loading %s' % pdb_filename)
-pdb = app.PDBFile(pdb_filename)
+# Read in the solvated model
+print('Loading %s' % solvated_pdb_filename)
+pdb = app.PDBFile(solvated_pdb_filename)
 
-# Use Amber 14SB (which has parameters for C-terminal -NH2)
 print("Loading forcefield: %s" % ffxml_filenames)
 forcefield = app.ForceField(*ffxml_filenames)
 
-# Solvate
-print('Adding solvent...')
 modeller = app.Modeller(pdb.topology, pdb.positions)
-modeller.addSolvent(forcefield, model=water_model, padding=solvent_padding, ionicStrength=ionic_strength)
-#print('System has %d atoms' % modeller.topology.getNumAtoms())
-
-# Write initial model
-print('Writing initial solvated system to %s' % solvated_pdb_filename)
-with open(solvated_pdb_filename, 'w') as outfile:
-    app.PDBFile.writeFile(modeller.topology, modeller.positions, file=outfile, keepIds=True)
 
 # Create the system
 print('Creating OpenMM System...')
-system = forcefield.createSystem(modeller.topology, nonbondedMethod=app.PME, constraints=app.HBonds, removeCMMotion=False, hydrogenMass=hydrogen_mass)
+system = forcefield.createSystem(modeller.topology, nonbondedMethod=app.PME, constraints=app.HBonds, removeCMMotion=False)
 
 # Add a barostat
 print('Adding barostat...')
@@ -102,3 +94,4 @@ system.setDefaultPeriodicBoxVectors(*state.getPeriodicBoxVectors())
 with open(system_xml_filename, 'w') as outfile:
     xml = openmm.XmlSerializer.serialize(system)
     outfile.write(xml)
+
